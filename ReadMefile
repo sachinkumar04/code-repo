@@ -1,0 +1,126 @@
+1- Setup Nodejs Hello Work App with sample code;
+
+ let http = require('http');
+http.createServer(function (req, res) {
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  res.end('Hello World!');
+}).listen(8000);
+
+2- Create Dockerfile with the code;
+FROM node:alpine3.21
+
+WORKDIR /APP
+
+COPY . .
+
+#RUN skip
+#RUN npm install
+
+EXPOSE 8000
+
+CMD ["node", "app.js"]
+
+3- Build Docker image from Dockerfile
+docker build -t nodeapp .
+
+4- Run the container on our vm
+docker run -d -p 8000:8000 --name nodeapp nodeapp
+
+5 Setup Jenkins server and create pipeline to run the above docker commands
+
+pipeline {
+    agent any
+
+    stages {
+        stage('code') {
+            steps {
+                echo 'clone the code'
+                git branch: 'main', url: 'https://github.com/sachinkumar04/code-repo.git'
+            }
+        }
+        stage('Build Image') {
+            steps {
+                echo 'build image succesfully'
+                sh "docker build -t nodeapp ."
+            }
+        }
+        stage('PushImage') {
+            steps {
+                echo 'PushImage to Dockerhub'
+                withCredentials([usernamePassword(credentialsId: 'DockerHub', passwordVariable: 'pass', usernameVariable: 'user')]){
+                sh "docker login -u ${env.user} -p ${env.pass}"
+                sh "docker tag nodeapp sachinkumar04/nodeapp:latest"
+                sh "docker push sachinkumar04/nodeapp:latest"
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploy app on docker'
+                sh "docker stop myapp1 || true"
+                sh "docker rm myapp1 || true"
+                sh "docker run -d -p 8000:8000 --name myapp1 nodeapp"
+            }
+        }
+    }
+}
+
+
+6- Setup Kubernetes cluster using eksctl tool on async (
+    
+eksctl create cluster --name my-cluster --region us-east-1 --nodes 2 --node-type t2.micro
+
+after cluster created
+
+eksctl get cluster
+aws eks --region us-east-1 update-kubeconfig --name my-cluster
+deploy the helloword app with in the cluster and expose the app using NodePort service
+
+kubectl create deployment hello-node --image=sachinkumar04/nodeapp:latest
+kubectl expose deployment hello-node --type=NodePort --port=8000
+
+kubectl get all
+kubectl get svc
+
+7- Access the app using worker node ip and NodePort
+
+kubectl get nodes -o wide
+curl <NodeIP>:<NodePort>
+
+    8- Setup Prometheus and Grafana using docker-compose 
+    version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+    9- Create prometheus.yml file
+    global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  - job_name: 'VM-01'
+    static_configs:
+      - targets: ['35.153.182.171:9100']
+
+    - job_name: 'VM-02'

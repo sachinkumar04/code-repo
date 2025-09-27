@@ -5,6 +5,7 @@ WORKDIR /APP
 COPY . .
 
 #RUN skip
+#RUN npm install
 
 EXPOSE 8000
 

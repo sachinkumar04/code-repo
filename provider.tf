@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"  # Change this as per your region
+  region = var.region  # Change this as per your region
 }
 
 # Security Group allowing SSH and application traffic

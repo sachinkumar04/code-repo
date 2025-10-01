@@ -10,4 +10,10 @@ variable "ami_id" {
   description = "The AMI ID to use for the EC2 instance"
   type        = string
 }
+# variables.tf
+variable "region" {
+  description = "The AWS region to create resources in"
+  type        = string
+  default     = "us-east-1"  # You can set a default region if needed
+}
 

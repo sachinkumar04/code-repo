@@ -1,5 +1,5 @@
 provider "aws" {
-  region = var.region  # Change this as per your region
+  region = var.region  # Ensure that the region is provided via variables.tf or set directly in terraform.tfvars
 }
 
 # Security Group allowing SSH and application traffic
@@ -30,7 +30,7 @@ resource "aws_security_group" "allow_web" {
   }
 }
 
-# Generate a new SSH key pair using TLS provider
+# Generate a new SSH key pair using the TLS provider
 resource "tls_private_key" "jenkins_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -39,18 +39,16 @@ resource "tls_private_key" "jenkins_key" {
 # Create AWS Key Pair resource to import the generated public key
 resource "aws_key_pair" "jenkins_key" {
   key_name   = "jenkins_deploy_key"
-  
-  # Use the correct format for public key
   public_key = tls_private_key.jenkins_key.public_key_openssh  # Corrected to public_key_openssh
 }
 
 # EC2 Instance creation
 resource "aws_instance" "example" {
-  ami           = var.ami_id  # Use the variables from terraform.tfvars
-  instance_type = var.instance_type  # Use the variables from terraform.tfvars
-  key_name      = "jenkins_deploy_key"  # Name of the key pair to use
-  subnet_id     = "subnet-0734a3ce24f6f70b8"  # Your specified Subnet ID
-  vpc_security_group_ids = [aws_security_group.allow_web.id]
+  ami                    = var.ami_id  # Use the variables from terraform.tfvars
+  instance_type           = var.instance_type  # Use the variables from terraform.tfvars
+  key_name                = aws_key_pair.jenkins_key.key_name  # Use the created key pair
+  subnet_id               = "subnet-0734a3ce24f6f70b8"  # Your specified Subnet ID
+  vpc_security_group_ids  = [aws_security_group.allow_web.id]
 
   tags = {
     Name = "ExampleInstance"

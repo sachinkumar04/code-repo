@@ -1,4 +1,4 @@
-1- Setup Nodejs Hello Work App with sample code;
+1- Setup Nodejs Hello Work App with Sample Code;
 
  let http = require('http');
 http.createServer(function (req, res) {
